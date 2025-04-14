@@ -13,8 +13,7 @@ import DashboardPage from "./pages/DashboardPage";
 import PCDetailsPage from "./pages/PCDetailsPage";
 import PCEditPage from "./pages/PCEditPage";
 import NotFound from "./pages/NotFound";
-
-const queryClient = new QueryClient();
+import { useState } from "react";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -45,20 +44,25 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter basename="/location">
-      <AuthProvider>
-        <PCProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <AppRoutes />
-          </TooltipProvider>
-        </PCProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Move the QueryClient initialization inside the component
+  const [queryClient] = useState(() => new QueryClient());
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter basename="/location">
+        <AuthProvider>
+          <PCProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <AppRoutes />
+            </TooltipProvider>
+          </PCProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
