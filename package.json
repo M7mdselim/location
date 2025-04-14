@@ -3,6 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+
+  "homepage": "https://M7mdselim.github.io/location",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
