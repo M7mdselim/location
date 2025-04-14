@@ -1,3 +1,4 @@
+
 import { PC, PCFormData, supabasePCToPC } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
@@ -160,7 +161,8 @@ export const addPC = async (pcData: PCFormData): Promise<PC | null> => {
       .insert({
         name: pcData.name,
         owner: pcData.owner,
-        ip_address: pcData.ipAddress
+        ip_address: pcData.ipAddress,
+        mac_address: pcData.macAddress || null
       })
       .select()
       .single();
@@ -263,6 +265,7 @@ export const updatePC = async (id: string, pcData: Partial<PCFormData>): Promise
     if (pcData.name) updateData.name = pcData.name;
     if (pcData.owner) updateData.owner = pcData.owner;
     if (pcData.ipAddress) updateData.ip_address = pcData.ipAddress;
+    if (pcData.macAddress !== undefined) updateData.mac_address = pcData.macAddress || null;
     
     const { data: updatedPC, error } = await supabase
       .from("pcs")
