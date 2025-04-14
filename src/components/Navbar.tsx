@@ -24,7 +24,7 @@ const Navbar = () => {
           <Link to="/dashboard">
             <Button variant="ghost" className="gap-2">
               <List className="h-4 w-4" />
-              <span>Dashboard</span>
+              <span>Saved PC's</span>
             </Button>
           </Link>
         </nav>
