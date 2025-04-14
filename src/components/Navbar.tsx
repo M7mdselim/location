@@ -11,7 +11,7 @@ const Navbar = () => {
         <div className="flex items-center gap-2">
           <Computer className="h-6 w-6 text-primary" />
           <Link to="/" className="flex items-center">
-            <h1 className="text-xl font-bold tracking-tight text-primary">PC Pal Data Vault</h1>
+            <h1 className="text-xl font-bold tracking-tight text-primary">Location</h1>
           </Link>
         </div>
         <nav className="flex items-center gap-4">
