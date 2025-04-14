@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { usePC } from "@/contexts/PCContext";
 import { getPCById } from "@/lib/storage";
@@ -28,9 +28,37 @@ import { ChevronLeft, Trash, Edit, Computer, Calendar, User, Network } from "luc
 
 const PCDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const [pc, setPC] = useState<PC | null>(id ? getPCById(id) || null : null);
+  const [pc, setPC] = useState<PC | null>(null);
+  const [loading, setLoading] = useState(true);
   const { deleteExistingPC } = usePC();
   const navigate = useNavigate();
+
+  // Load PC data when component mounts or ID changes
+  useEffect(() => {
+    const loadPC = async () => {
+      if (id) {
+        setLoading(true);
+        try {
+          const pcData = await getPCById(id);
+          setPC(pcData || null);
+        } catch (error) {
+          console.error("Error loading PC:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadPC();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="container py-10 text-center">
+        <h2 className="text-xl font-medium mb-4">Loading PC details...</h2>
+      </div>
+    );
+  }
 
   if (!pc) {
     return (
@@ -91,6 +119,28 @@ const PCDetails = () => {
               )}
             </CardContent>
           </Card>
+          
+          {/* Additional photos if available */}
+          {pc.photos && pc.photos.length > 1 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xl font-bold">Additional Photos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2">
+                  {pc.photos.slice(1).map((photoUrl, index) => (
+                    <div key={index} className="rounded-md overflow-hidden border border-border">
+                      <img
+                        src={photoUrl}
+                        alt={`${pc.name} photo ${index + 2}`}
+                        className="w-full aspect-square object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           <div className="flex space-x-2">
             <Button
