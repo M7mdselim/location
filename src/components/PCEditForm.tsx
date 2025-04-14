@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { usePC } from "@/contexts/PCContext";
@@ -27,7 +26,6 @@ const PCEditForm = () => {
   const { updateExistingPC } = usePC();
   const navigate = useNavigate();
 
-  // Load PC data when component mounts or ID changes
   useEffect(() => {
     const loadPC = async () => {
       if (id) {
@@ -67,7 +65,6 @@ const PCEditForm = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert("File size exceeds 5MB limit");
       return;
@@ -86,13 +83,11 @@ const PCEditForm = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check if already at maximum photos (5 total including main photo)
     if (additionalPhotos.length >= 4) {
       alert("Maximum of 5 photos allowed (1 main + 4 additional)");
       return;
     }
 
-    // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert("File size exceeds 5MB limit");
       return;
@@ -101,10 +96,9 @@ const PCEditForm = () => {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      setAdditionalPhotos(prev => [...prev, result]);
+      setAdditionalPhotos(prevPhotos => [...prevPhotos, result]);
       
-      // Update the formData.photos array
-      const updatedPhotos = [formData.photo, ...prev, result].filter(Boolean);
+      const updatedPhotos = [formData.photo, ...additionalPhotos, result].filter(Boolean);
       setFormData(prev => ({
         ...prev,
         photos: updatedPhotos,
@@ -116,7 +110,6 @@ const PCEditForm = () => {
   const handleClearPhoto = () => {
     setPhotoPreview(null);
     
-    // If there are additional photos, make the first one the main photo
     if (additionalPhotos.length > 0) {
       const [newMain, ...rest] = additionalPhotos;
       setPhotoPreview(newMain);
@@ -136,7 +129,6 @@ const PCEditForm = () => {
     updatedPhotos.splice(index, 1);
     setAdditionalPhotos(updatedPhotos);
     
-    // Update formData.photos
     const allPhotos = [formData.photo, ...updatedPhotos].filter(Boolean);
     setFormData(prev => ({
       ...prev,
@@ -205,7 +197,7 @@ const PCEditForm = () => {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Edit PC</CardTitle>
           <CardDescription>
-            Update the details of {pc.name}
+            Update the details of {pc?.name}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -296,7 +288,6 @@ const PCEditForm = () => {
               )}
             </div>
             
-            {/* Additional Photos Section */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Additional Photos ({additionalPhotos.length}/4)</Label>
