@@ -9,10 +9,11 @@ interface PCContextType {
   loading: boolean;
   searchQuery: string;
   filteredPCs: PC[];
-  addNewPC: (pcData: PCFormData) => PC;
-  updateExistingPC: (id: string, pcData: Partial<PCFormData>) => PC | null;
-  deleteExistingPC: (id: string) => boolean;
+  addNewPC: (pcData: PCFormData) => Promise<PC | null>;
+  updateExistingPC: (id: string, pcData: Partial<PCFormData>) => Promise<PC | null>;
+  deleteExistingPC: (id: string) => Promise<boolean>;
   setSearchQuery: (query: string) => void;
+  refreshPCs: () => Promise<void>;
 }
 
 const PCContext = createContext<PCContextType | undefined>(undefined);
@@ -24,10 +25,11 @@ export const PCProvider = ({ children }: { children: ReactNode }) => {
   const [filteredPCs, setFilteredPCs] = useState<PC[]>([]);
   const { toast } = useToast();
 
-  // Initial load of PCs
-  useEffect(() => {
+  // Function to load PCs from storage
+  const refreshPCs = async () => {
+    setLoading(true);
     try {
-      const loadedPCs = getAllPCs();
+      const loadedPCs = await getAllPCs();
       setPCs(loadedPCs);
     } catch (error) {
       console.error("Error loading PCs:", error);
@@ -39,32 +41,57 @@ export const PCProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  };
+
+  // Initial load of PCs
+  useEffect(() => {
+    refreshPCs();
+  }, []);
 
   // Filter PCs when search query changes
   useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredPCs(pcs);
-    } else {
-      setFilteredPCs(searchPCs(searchQuery));
-    }
+    const performSearch = async () => {
+      if (searchQuery.trim() === "") {
+        setFilteredPCs(pcs);
+      } else {
+        setLoading(true);
+        try {
+          const results = await searchPCs(searchQuery);
+          setFilteredPCs(results);
+        } catch (error) {
+          console.error("Error searching PCs:", error);
+          setFilteredPCs(pcs.filter(
+            pc =>
+              pc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              pc.owner.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              pc.ipAddress.includes(searchQuery)
+          ));
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    performSearch();
   }, [searchQuery, pcs]);
 
   // Add a new PC
-  const addNewPC = (pcData: PCFormData): PC => {
+  const addNewPC = async (pcData: PCFormData): Promise<PC | null> => {
     try {
-      const newPC = addPC(pcData);
-      setPCs((prevPCs) => [...prevPCs, newPC]);
-      toast({
-        title: "Success",
-        description: `PC "${pcData.name}" added successfully`,
-      });
+      const newPC = await addPC(pcData);
+      if (newPC) {
+        setPCs((prevPCs) => [newPC, ...prevPCs]);
+        toast({
+          title: "Success",
+          description: `PC "${pcData.name}" added successfully`,
+        });
+      }
       return newPC;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding PC:", error);
       toast({
         title: "Error",
-        description: "Failed to add PC",
+        description: error.message || "Failed to add PC",
         variant: "destructive",
       });
       throw error;
@@ -72,9 +99,9 @@ export const PCProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Update an existing PC
-  const updateExistingPC = (id: string, pcData: Partial<PCFormData>): PC | null => {
+  const updateExistingPC = async (id: string, pcData: Partial<PCFormData>): Promise<PC | null> => {
     try {
-      const updatedPC = updatePC(id, pcData);
+      const updatedPC = await updatePC(id, pcData);
       if (updatedPC) {
         setPCs((prevPCs) =>
           prevPCs.map((pc) => (pc.id === id ? updatedPC : pc))
@@ -85,11 +112,11 @@ export const PCProvider = ({ children }: { children: ReactNode }) => {
         });
       }
       return updatedPC;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating PC:", error);
       toast({
         title: "Error",
-        description: "Failed to update PC",
+        description: error.message || "Failed to update PC",
         variant: "destructive",
       });
       return null;
@@ -97,9 +124,9 @@ export const PCProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Delete a PC
-  const deleteExistingPC = (id: string): boolean => {
+  const deleteExistingPC = async (id: string): Promise<boolean> => {
     try {
-      const result = deletePC(id);
+      const result = await deletePC(id);
       if (result) {
         setPCs((prevPCs) => prevPCs.filter((pc) => pc.id !== id));
         toast({
@@ -130,6 +157,7 @@ export const PCProvider = ({ children }: { children: ReactNode }) => {
         updateExistingPC,
         deleteExistingPC,
         setSearchQuery,
+        refreshPCs,
       }}
     >
       {children}
