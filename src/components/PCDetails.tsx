@@ -24,7 +24,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ChevronLeft, Trash, Edit, Computer, Calendar, User, Network } from "lucide-react";
+import { ChevronLeft, Trash, Edit, Computer, Calendar, User, Network, Wifi } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const PCDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +33,14 @@ const PCDetails = () => {
   const [loading, setLoading] = useState(true);
   const { deleteExistingPC } = usePC();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  // Check authentication
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+    }
+  }, [isAuthenticated, navigate]);
 
   // Load PC data when component mounts or ID changes
   useEffect(() => {
@@ -202,6 +211,16 @@ const PCDetails = () => {
                     <p className="text-lg font-mono">{pc.ipAddress}</p>
                   </div>
                 </div>
+                
+                {pc.macAddress && (
+                  <div className="flex items-start space-x-3">
+                    <Wifi className="h-5 w-5 text-pc-blue mt-0.5" />
+                    <div>
+                      <h3 className="font-medium">MAC Address</h3>
+                      <p className="text-lg font-mono">{pc.macAddress}</p>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="flex items-start space-x-3">
                   <Computer className="h-5 w-5 text-pc-blue mt-0.5" />

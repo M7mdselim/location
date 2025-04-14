@@ -43,6 +43,7 @@ export type Database = {
           created_at: string
           id: string
           ip_address: string
+          mac_address: string | null
           name: string
           owner: string
           updated_at: string
@@ -51,6 +52,7 @@ export type Database = {
           created_at?: string
           id?: string
           ip_address: string
+          mac_address?: string | null
           name: string
           owner: string
           updated_at?: string
@@ -59,9 +61,31 @@ export type Database = {
           created_at?: string
           id?: string
           ip_address?: string
+          mac_address?: string | null
           name?: string
           owner?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          password: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          password: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          password?: string
         }
         Relationships: []
       }

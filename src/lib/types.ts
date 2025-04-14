@@ -11,6 +11,7 @@ export interface PC {
   name: string;
   owner: string;
   ipAddress: string;
+  macAddress?: string; // Added MAC address as optional
   photo: string;
   photos?: string[]; // Support for multiple photos
   createdAt: number;
@@ -26,6 +27,7 @@ export const supabasePCToPC = (pc: SupabasePC, photos: SupabasePCPhoto[] = []): 
     name: pc.name,
     owner: pc.owner,
     ipAddress: pc.ip_address,
+    macAddress: pc.mac_address || undefined,
     photo: photos.length > 0 ? photos[0].photo_url : "",
     photos: photos.map(p => p.photo_url),
     createdAt: new Date(pc.created_at).getTime(),
@@ -38,5 +40,6 @@ export const pcToSupabasePC = (pc: PCFormData) => {
     name: pc.name,
     owner: pc.owner,
     ip_address: pc.ipAddress,
+    mac_address: pc.macAddress || null,
   };
 };
