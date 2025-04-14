@@ -1,257 +1,232 @@
 
-import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { usePC } from "@/contexts/PCContext";
-import { getPCById } from "@/lib/storage";
-import { PC } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { ChevronLeft, Trash, Edit, Computer, Calendar, User, Network, Wifi } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Edit, Trash, Computer, ChevronLeft, ChevronRight } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const PCDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const [pc, setPC] = useState<PC | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { deleteExistingPC } = usePC();
+  const { pcs, deleteExistingPC } = usePC();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [deleting, setDeleting] = useState(false);
 
-  // Check authentication
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-    }
-  }, [isAuthenticated, navigate]);
-
-  // Load PC data when component mounts or ID changes
-  useEffect(() => {
-    const loadPC = async () => {
-      if (id) {
-        setLoading(true);
-        try {
-          const pcData = await getPCById(id);
-          setPC(pcData || null);
-        } catch (error) {
-          console.error("Error loading PC:", error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadPC();
-  }, [id]);
-
-  if (loading) {
-    return (
-      <div className="container py-10 text-center">
-        <h2 className="text-xl font-medium mb-4">Loading PC details...</h2>
-      </div>
-    );
-  }
+  const pc = id ? pcs.find(p => p.id === id) : null;
 
   if (!pc) {
     return (
-      <div className="container py-10 text-center">
-        <h2 className="text-2xl font-bold mb-4">PC Not Found</h2>
-        <p className="mb-6">The PC you're looking for doesn't exist or has been removed.</p>
-        <Button onClick={() => navigate("/dashboard")}>
-          <ChevronLeft className="mr-2 h-4 w-4" />
+      <div className="text-center p-8">
+        <h2 className="text-2xl font-bold">PC Not Found</h2>
+        <p className="mt-2">The PC you're looking for doesn't exist.</p>
+        <Button className="mt-4" onClick={() => navigate("/dashboard")}>
           Back to Dashboard
         </Button>
       </div>
     );
   }
 
-  const handleDelete = () => {
-    if (id) {
-      deleteExistingPC(id);
-      navigate("/dashboard");
+  const photos = pc.photos && pc.photos.length > 0 ? pc.photos : [pc.photo].filter(Boolean);
+
+  const handleDelete = async () => {
+    if (!id) return;
+    
+    setDeleting(true);
+    try {
+      const success = await deleteExistingPC(id);
+      if (success) {
+        toast({
+          title: "PC Deleted",
+          description: `${pc.name} has been removed from your list`,
+        });
+        navigate("/dashboard");
+      } else {
+        throw new Error("Failed to delete PC");
+      }
+    } catch (error) {
+      console.error("Error deleting PC:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete PC",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const nextPhoto = () => {
+    if (photos.length <= 1) return;
+    setCurrentPhotoIndex((prev) => (prev + 1) % photos.length);
+  };
+
+  const prevPhoto = () => {
+    if (photos.length <= 1) return;
+    setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
   };
 
   return (
-    <div className="container py-8 max-w-4xl">
-      <Button variant="ghost" onClick={() => navigate("/dashboard")} className="mb-6">
-        <ChevronLeft className="mr-2 h-4 w-4" />
-        Back to Dashboard
-      </Button>
-      
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xl font-bold">PC Image</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pc.photo ? (
-                <div className="rounded-md overflow-hidden border border-border">
-                  <img
-                    src={pc.photo}
-                    alt={pc.name}
-                    className="w-full aspect-square object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-64 rounded-md border border-dashed border-border bg-gradient-to-br from-pc-blue to-pc-teal">
-                  <Computer className="h-16 w-16 text-white" />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Additional photos if available */}
-          {pc.photos && pc.photos.length > 1 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xl font-bold">Additional Photos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2">
-                  {pc.photos.slice(1).map((photoUrl, index) => (
-                    <div key={index} className="rounded-md overflow-hidden border border-border">
-                      <img
-                        src={photoUrl}
-                        alt={`${pc.name} photo ${index + 2}`}
-                        className="w-full aspect-square object-cover"
+    <div className="container max-w-3xl py-8">
+      <Card className="w-full">
+        <CardHeader className="relative">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">{pc.name}</h2>
+            <Badge variant="outline" className="rounded-full px-3">
+              {pc.ipAddress}
+            </Badge>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {photos.length > 0 && (
+            <div className="relative rounded-md overflow-hidden border border-border aspect-video">
+              <img 
+                src={photos[currentPhotoIndex]} 
+                alt={pc.name} 
+                className="w-full h-full object-cover"
+              />
+              
+              {photos.length > 1 && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-background/80"
+                    onClick={prevPhoto}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-background/80"
+                    onClick={nextPhoto}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  
+                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                    {photos.map((_, index) => (
+                      <div 
+                        key={index}
+                        className={`w-2 h-2 rounded-full ${currentPhotoIndex === index ? 'bg-primary' : 'bg-background/80'}`}
+                        onClick={() => setCurrentPhotoIndex(index)}
                       />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           )}
+          
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Owner</h3>
+              <p className="mt-1">{pc.owner}</p>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">IP Address</h3>
+              <p className="mt-1">{pc.ipAddress}</p>
+            </div>
+            
+            {pc.macAddress && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground">MAC Address</h3>
+                <p className="mt-1">{pc.macAddress}</p>
+              </div>
+            )}
+            
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Added</h3>
+              <p className="mt-1">{new Date(pc.createdAt).toLocaleDateString()}</p>
+            </div>
+          </div>
+          
+          {photos.length > 1 && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">All Photos</h3>
+              <div className="grid grid-cols-5 gap-2">
+                {photos.map((photo, index) => (
+                  <div 
+                    key={index} 
+                    className={`rounded-md overflow-hidden border cursor-pointer ${index === currentPhotoIndex ? 'border-primary' : 'border-border'}`}
+                    onClick={() => setCurrentPhotoIndex(index)}
+                  >
+                    <img src={photo} alt={`${pc.name} ${index + 1}`} className="w-full h-16 object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+        
+        <Separator />
+        
+        <CardFooter className="flex justify-between p-6">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/dashboard")}
+          >
+            Back to Dashboard
+          </Button>
           
           <div className="flex space-x-2">
             <Button
               variant="outline"
-              className="flex-1"
               onClick={() => navigate(`/pc/${id}/edit`)}
             >
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </Button>
             
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="flex-1">
-                  <Trash className="mr-2 h-4 w-4" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the PC data
-                    for "{pc.name}".
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
           </div>
-        </div>
-        
-        <div className="md:col-span-2">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold">{pc.name}</CardTitle>
-              <CardDescription>{pc.ipAddress}</CardDescription>
-            </CardHeader>
-            
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <User className="h-5 w-5 text-pc-blue mt-0.5" />
-                  <div>
-                    <h3 className="font-medium">Owner</h3>
-                    <p className="text-lg">{pc.owner}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <Network className="h-5 w-5 text-pc-blue mt-0.5" />
-                  <div>
-                    <h3 className="font-medium">IP Address</h3>
-                    <p className="text-lg font-mono">{pc.ipAddress}</p>
-                  </div>
-                </div>
-                
-                {pc.macAddress && (
-                  <div className="flex items-start space-x-3">
-                    <Wifi className="h-5 w-5 text-pc-blue mt-0.5" />
-                    <div>
-                      <h3 className="font-medium">MAC Address</h3>
-                      <p className="text-lg font-mono">{pc.macAddress}</p>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex items-start space-x-3">
-                  <Computer className="h-5 w-5 text-pc-blue mt-0.5" />
-                  <div>
-                    <h3 className="font-medium">PC Name</h3>
-                    <p className="text-lg">{pc.name}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <Calendar className="h-5 w-5 text-pc-blue mt-0.5" />
-                  <div>
-                    <h3 className="font-medium">Added On</h3>
-                    <p>{formatDate(pc.createdAt)}</p>
-                  </div>
-                </div>
-                
-                {pc.updatedAt !== pc.createdAt && (
-                  <div className="flex items-start space-x-3">
-                    <Calendar className="h-5 w-5 text-pc-blue mt-0.5" />
-                    <div>
-                      <h3 className="font-medium">Last Updated</h3>
-                      <p>{formatDate(pc.updatedAt)}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
+      
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{pc.name}</strong> and all of its associated data.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Computer className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

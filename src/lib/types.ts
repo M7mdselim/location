@@ -11,7 +11,7 @@ export interface PC {
   name: string;
   owner: string;
   ipAddress: string;
-  macAddress?: string; // Added MAC address as optional
+  macAddress?: string;
   photo: string;
   photos?: string[]; // Support for multiple photos
   createdAt: number;
