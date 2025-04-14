@@ -378,7 +378,7 @@ export const deletePC = async (id: string): Promise<boolean> => {
   }
 };
 
-// Search PCs by name, owner, or IP
+// Search PCs by name, owner, IP, or MAC
 export const searchPCs = async (query: string): Promise<PC[]> => {
   try {
     const lowerQuery = query.toLowerCase();
@@ -386,7 +386,7 @@ export const searchPCs = async (query: string): Promise<PC[]> => {
     const { data: pcs, error } = await supabase
       .from("pcs")
       .select("*")
-      .or(`name.ilike.%${lowerQuery}%,owner.ilike.%${lowerQuery}%,ip_address.ilike.%${lowerQuery}%`);
+      .or(`name.ilike.%${lowerQuery}%,owner.ilike.%${lowerQuery}%,ip_address.ilike.%${lowerQuery}%,mac_address.ilike.%${lowerQuery}%`);
       
     if (error) {
       console.error("Error searching PCs:", error);
@@ -431,7 +431,8 @@ export const searchPCs = async (query: string): Promise<PC[]> => {
         (pc) =>
           pc.name.toLowerCase().includes(lowerQuery) ||
           pc.owner.toLowerCase().includes(lowerQuery) ||
-          pc.ipAddress.includes(lowerQuery)
+          pc.ipAddress.includes(lowerQuery) ||
+          (pc.macAddress && pc.macAddress.toLowerCase().includes(lowerQuery))
       );
     } catch (localError) {
       console.error("Error in local fallback:", localError);
