@@ -87,11 +87,11 @@ const PCDetails = () => {
         
         <CardContent className="space-y-6">
           {photos.length > 0 && (
-            <div className="relative rounded-md overflow-hidden border border-border aspect-video">
+            <div className="relative rounded-md overflow-hidden border border-border h-64">
               <img 
                 src={photos[currentPhotoIndex]} 
                 alt={pc.name} 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-fill"
               />
               
               {photos.length > 1 && (
