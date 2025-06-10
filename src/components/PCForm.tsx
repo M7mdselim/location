@@ -49,27 +49,28 @@ const PCForm = () => {
 
     const fileArray = Array.from(files);
     let processedCount = 0;
+    const newPhotos: string[] = [];
 
     fileArray.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const newPhotoData = reader.result as string;
         
-        setPhotos(prevPhotos => {
-          // Check if this photo already exists (by data or by file characteristics)
-          const isDuplicate = prevPhotos.some(existingPhoto => existingPhoto === newPhotoData);
-          
-          if (isDuplicate) {
-            console.log("Duplicate photo detected, skipping...");
-            return prevPhotos;
-          }
-          
-          // Only add if not duplicate
-          return [...prevPhotos, newPhotoData];
-        });
+        // Check if this photo already exists in current photos
+        const isDuplicate = photos.some(existingPhoto => existingPhoto === newPhotoData);
+        
+        if (!isDuplicate) {
+          newPhotos.push(newPhotoData);
+        } else {
+          console.log("Duplicate photo detected, skipping...");
+        }
 
         processedCount++;
         if (processedCount === fileArray.length) {
+          // Add all new unique photos at once
+          if (newPhotos.length > 0) {
+            setPhotos(prevPhotos => [...prevPhotos, ...newPhotos]);
+          }
           setProcessingFiles(false);
         }
       };
@@ -95,11 +96,20 @@ const PCForm = () => {
   const onSubmit = async (data: PCFormData) => {
     setLoading(true);
     try {
-      // Set the first photo as the main photo, or empty if no photos
-      data.photo = photos.length > 0 ? photos[0] : "";
+      // Remove duplicates from photos array
+      const uniquePhotos = [...new Set(photos)];
       
-      // Set all photos in the photos array
-      data.photos = photos;
+      // Set the first photo as the main photo, or empty if no photos
+      data.photo = uniquePhotos.length > 0 ? uniquePhotos[0] : "";
+      
+      // Set all photos in the photos array (no need to include main photo separately)
+      data.photos = uniquePhotos;
+
+      console.log("Submitting PC with photos:", { 
+        mainPhoto: data.photo, 
+        photosCount: data.photos.length,
+        photos: data.photos 
+      });
 
       await addNewPC(data);
       reset();

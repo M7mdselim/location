@@ -36,7 +36,9 @@ const PCEditForm = () => {
         macAddress: currentPC.macAddress || "",
         photo: currentPC.photo || "",
       });
-      setPhotos(currentPC.photos || [currentPC.photo].filter(Boolean));
+      // Set photos from the PC's photos array, removing duplicates
+      const uniquePhotos = [...new Set(currentPC.photos || [currentPC.photo].filter(Boolean))];
+      setPhotos(uniquePhotos);
       setLoading(false);
     }
   }, [id, pcs, reset]);
@@ -61,27 +63,28 @@ const PCEditForm = () => {
 
     const fileArray = Array.from(files);
     let processedCount = 0;
+    const newPhotos: string[] = [];
 
     fileArray.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const newPhotoData = reader.result as string;
         
-        setPhotos(prevPhotos => {
-          // Check if this photo already exists
-          const isDuplicate = prevPhotos.some(existingPhoto => existingPhoto === newPhotoData);
-          
-          if (isDuplicate) {
-            console.log("Duplicate photo detected, skipping...");
-            return prevPhotos;
-          }
-          
-          // Only add if not duplicate
-          return [...prevPhotos, newPhotoData];
-        });
+        // Check if this photo already exists in current photos
+        const isDuplicate = photos.some(existingPhoto => existingPhoto === newPhotoData);
+        
+        if (!isDuplicate) {
+          newPhotos.push(newPhotoData);
+        } else {
+          console.log("Duplicate photo detected, skipping...");
+        }
 
         processedCount++;
         if (processedCount === fileArray.length) {
+          // Add all new unique photos at once
+          if (newPhotos.length > 0) {
+            setPhotos(prevPhotos => [...prevPhotos, ...newPhotos]);
+          }
           setProcessingFiles(false);
         }
       };
@@ -109,11 +112,20 @@ const PCEditForm = () => {
     
     setSaving(true);
     try {
-      // Set the first photo as the main photo
-      data.photo = photos.length > 0 ? photos[0] : "";
+      // Remove duplicates from photos array
+      const uniquePhotos = [...new Set(photos)];
       
-      // Set all photos in the photos array
-      data.photos = photos;
+      // Set the first photo as the main photo
+      data.photo = uniquePhotos.length > 0 ? uniquePhotos[0] : "";
+      
+      // Set all photos in the photos array (no need to include main photo separately)
+      data.photos = uniquePhotos;
+
+      console.log("Updating PC with photos:", { 
+        mainPhoto: data.photo, 
+        photosCount: data.photos.length,
+        photos: data.photos 
+      });
       
       await updateExistingPC(id, data);
       navigate("/pc/" + id);
