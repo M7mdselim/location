@@ -17,6 +17,7 @@ const PCEditForm = () => {
   const [saving, setSaving] = useState(false);
   const [pc, setPC] = useState<PC | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
+  const [processingFiles, setProcessingFiles] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -42,7 +43,10 @@ const PCEditForm = () => {
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || processingFiles) return;
+
+    // Prevent multiple simultaneous processing
+    setProcessingFiles(true);
 
     // Limit to 5 total photos
     if (photos.length + files.length > 5) {
@@ -51,24 +55,44 @@ const PCEditForm = () => {
         description: "You can only upload up to 5 photos per PC",
         variant: "destructive",
       });
+      setProcessingFiles(false);
       return;
     }
 
-    Array.from(files).forEach(file => {
+    const fileArray = Array.from(files);
+    let processedCount = 0;
+
+    fileArray.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const newPhotoData = reader.result as string;
         
-        // Check if this photo already exists to prevent duplicates
         setPhotos(prevPhotos => {
+          // Check if this photo already exists
           const isDuplicate = prevPhotos.some(existingPhoto => existingPhoto === newPhotoData);
+          
           if (isDuplicate) {
             console.log("Duplicate photo detected, skipping...");
             return prevPhotos;
           }
+          
+          // Only add if not duplicate
           return [...prevPhotos, newPhotoData];
         });
+
+        processedCount++;
+        if (processedCount === fileArray.length) {
+          setProcessingFiles(false);
+        }
       };
+      
+      reader.onerror = () => {
+        processedCount++;
+        if (processedCount === fileArray.length) {
+          setProcessingFiles(false);
+        }
+      };
+      
       reader.readAsDataURL(file);
     });
 
@@ -186,6 +210,7 @@ const PCEditForm = () => {
                   accept="image/*"
                   multiple
                   onChange={handlePhotoChange}
+                  disabled={processingFiles}
                   className="file:mr-4 file:px-4 file:py-2 file:border-0 file:rounded-md file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                 />
                 
@@ -215,7 +240,7 @@ const PCEditForm = () => {
                   </div>
                 )}
                 <p className="text-sm text-muted-foreground">
-                  {photos.length} of 5 photos selected
+                  {photos.length} of 5 photos selected {processingFiles && "(Processing...)"}
                 </p>
               </div>
             </div>
