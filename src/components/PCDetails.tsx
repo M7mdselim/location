@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePC } from "@/contexts/PCContext";
@@ -7,7 +6,8 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Edit, Trash, Computer, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Edit, Trash, Computer, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const PCDetails = () => {
@@ -18,6 +18,8 @@ const PCDetails = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [deleting, setDeleting] = useState(false);
+  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
+  const [dialogPhotoIndex, setDialogPhotoIndex] = useState(0);
 
   const pc = id ? pcs.find(p => p.id === id) : null;
 
@@ -73,6 +75,21 @@ const PCDetails = () => {
     setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
   };
 
+  const openPhotoDialog = (index: number) => {
+    setDialogPhotoIndex(index);
+    setShowPhotoDialog(true);
+  };
+
+  const nextDialogPhoto = () => {
+    if (photos.length <= 1) return;
+    setDialogPhotoIndex((prev) => (prev + 1) % photos.length);
+  };
+
+  const prevDialogPhoto = () => {
+    if (photos.length <= 1) return;
+    setDialogPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
+  };
+
   return (
     <div className="container max-w-3xl py-8">
       <Card className="w-full">
@@ -91,7 +108,8 @@ const PCDetails = () => {
               <img 
                 src={photos[currentPhotoIndex]} 
                 alt={pc.name} 
-                className="w-full h-full object-fill"
+                className="w-full h-full object-fill cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => openPhotoDialog(currentPhotoIndex)}
               />
               
               {photos.length > 1 && (
@@ -117,7 +135,7 @@ const PCDetails = () => {
                     {photos.map((_, index) => (
                       <div 
                         key={index}
-                        className={`w-2 h-2 rounded-full ${currentPhotoIndex === index ? 'bg-primary' : 'bg-background/80'}`}
+                        className={`w-2 h-2 rounded-full cursor-pointer ${currentPhotoIndex === index ? 'bg-primary' : 'bg-background/80'}`}
                         onClick={() => setCurrentPhotoIndex(index)}
                       />
                     ))}
@@ -158,8 +176,8 @@ const PCDetails = () => {
                 {photos.map((photo, index) => (
                   <div 
                     key={index} 
-                    className={`rounded-md overflow-hidden border cursor-pointer ${index === currentPhotoIndex ? 'border-primary' : 'border-border'}`}
-                    onClick={() => setCurrentPhotoIndex(index)}
+                    className={`rounded-md overflow-hidden border cursor-pointer hover:opacity-90 transition-opacity ${index === currentPhotoIndex ? 'border-primary' : 'border-border'}`}
+                    onClick={() => openPhotoDialog(index)}
                   >
                     <img src={photo} alt={`${pc.name} ${index + 1}`} className="w-full h-16 object-cover" />
                   </div>
@@ -198,6 +216,57 @@ const PCDetails = () => {
           </div>
         </CardFooter>
       </Card>
+      
+      {/* Photo Viewer Dialog */}
+      <Dialog open={showPhotoDialog} onOpenChange={setShowPhotoDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle>{pc.name} - Photo {dialogPhotoIndex + 1} of {photos.length}</DialogTitle>
+          </DialogHeader>
+          <div className="relative flex-1 p-6 pt-2">
+            <div className="relative flex justify-center items-center">
+              <img 
+                src={photos[dialogPhotoIndex]} 
+                alt={`${pc.name} ${dialogPhotoIndex + 1}`} 
+                className="max-w-full max-h-[60vh] object-contain rounded-md"
+              />
+              
+              {photos.length > 1 && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-background/80"
+                    onClick={prevDialogPhoto}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-background/80"
+                    onClick={nextDialogPhoto}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+            
+            {photos.length > 1 && (
+              <div className="flex justify-center mt-4 space-x-1">
+                {photos.map((_, index) => (
+                  <div 
+                    key={index}
+                    className={`w-3 h-3 rounded-full cursor-pointer ${dialogPhotoIndex === index ? 'bg-primary' : 'bg-background border border-border'}`}
+                    onClick={() => setDialogPhotoIndex(index)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
