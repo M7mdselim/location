@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePC } from "@/contexts/PCContext";
@@ -58,10 +57,23 @@ const PCEditForm = () => {
     Array.from(files).forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPhotos(prevPhotos => [...prevPhotos, reader.result as string]);
+        const newPhotoData = reader.result as string;
+        
+        // Check if this photo already exists to prevent duplicates
+        setPhotos(prevPhotos => {
+          const isDuplicate = prevPhotos.some(existingPhoto => existingPhoto === newPhotoData);
+          if (isDuplicate) {
+            console.log("Duplicate photo detected, skipping...");
+            return prevPhotos;
+          }
+          return [...prevPhotos, newPhotoData];
+        });
       };
       reader.readAsDataURL(file);
     });
+
+    // Clear the input to allow the same file to be selected again if needed
+    e.target.value = '';
   };
 
   const removePhoto = (index: number) => {
